@@ -1,0 +1,66 @@
+:root {
+  --bg: #1e1f22;
+  --panel: #2b2d31;
+  --panel-2: #313338;
+  --text: #dbdee1;
+  --muted: #949ba4;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --danger: #f23f43;
+  --live: #23a55a;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Высота панели должна совпадать с TOOLBAR_HEIGHT в main.js */
+#toolbar {
+  height: 52px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px;
+  background: var(--panel);
+  border-bottom: 1px solid #111214;
+}
+
+button, input { font: inherit; color: inherit; }
+button {
+  background: var(--panel-2);
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover { background: #3f4147; }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+input {
+  background: var(--bg);
+  border: 1px solid #111214;
+  border-radius: 6px;
+  padding: 6px 10px;
+  outline: none;
+}
+input:focus { border-color: var(--accent); }
+
+#url-form { flex: 1; min-width: 0; }
+#url { width: 100%; }
+
+#code-form { display: flex; align-items: center; gap: 6px; }
+#code-error { color: var(--danger); max-width: 280px; font-size: 12px; line-height: 1.2; }
+#code { width: 140px; text-transform: uppercase; font-family: Consolas, monospace; letter-spacing: 2px; }
+
+#live { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+#live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+#live.on #live-dot { background: var(--live); box-shadow: 0 0 0 3px rgba(35, 165, 90, .25); }
+#live.error #live-dot { background: var(--danger); }
+#live-text { color: var(--muted); }
+#live.on #live-text { color: var(--text); }

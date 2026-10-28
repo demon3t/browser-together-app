@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src 'self' https: wss: http://localhost:* ws://localhost:*; style-src 'self'">
+  <title>Browser Together</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <header id="toolbar">
+    <button id="back" title="Назад">&#8592;</button>
+    <button id="forward" title="Вперёд">&#8594;</button>
+    <button id="reload" title="Обновить">&#8635;</button>
+    <form id="url-form">
+      <input id="url" spellcheck="false" autocomplete="off" placeholder="Введите адрес или поисковый запрос">
+    </form>
+
+    <!-- Не подключено: поле для кода из Discord -->
+    <form id="code-form">
+      <span id="code-error" hidden></span>
+      <input id="code" maxlength="12" spellcheck="false" autocomplete="off" placeholder="Код из Discord">
+      <button type="submit" class="primary">Подключить</button>
+    </form>
+
+    <!-- Подключено: статус трансляции -->
+    <div id="live" hidden>
+      <span id="live-dot"></span>
+      <span id="live-text"></span>
+      <button id="disconnect" title="Остановить трансляцию">Отключить</button>
+    </div>
+  </header>
+  <script src="ui.js"></script>
+</body>
+</html>

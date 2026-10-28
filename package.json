@@ -1,0 +1,44 @@
+{
+  "name": "browser-together-app",
+  "productName": "Browser Together",
+  "version": "1.0.0",
+  "description": "Браузер, который транслирует вкладку в активность Discord «Browser Together»",
+  "main": "main.js",
+  "author": "demon3t",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "build": {
+    "appId": "io.github.demon3t.browsertogether",
+    "productName": "Browser Together",
+    "artifactName": "BrowserTogether-Setup.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/**/*"
+    ],
+    "protocols": [
+      {
+        "name": "Browser Together",
+        "schemes": [
+          "browsertogether"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  }
+}
