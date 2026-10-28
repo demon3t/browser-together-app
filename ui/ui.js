@@ -29,7 +29,10 @@ window.bt.onPage((page) => {
   if (document.activeElement !== $('url')) $('url').value = page.url;
   $('back').disabled = !page.canGoBack;
   $('forward').disabled = !page.canGoForward;
-  $('reload').innerHTML = page.loading ? '&#10005;' : '&#8635;';
+  $('reload-icon').setAttribute('href', page.loading ? '#i-stop' : '#i-reload');
+  $('reload').title = page.loading ? 'Остановить' : 'Обновить';
+  $('progress').hidden = !page.loading;
+  $('url-icon').setAttribute('href', page.url.startsWith('https:') ? '#i-lock' : '#i-globe');
   document.title = page.title ? `${page.title} — Browser Together` : 'Browser Together';
   send({ t: 'page', ...currentPage });
 });
@@ -45,11 +48,13 @@ $('code-form').addEventListener('submit', (e) => {
 
 $('disconnect').addEventListener('click', () => disconnect());
 
+// state: 'on' — в эфире, 'error' — связь потеряна, '' — подключение
 function showLive(text, state) {
   $('code-form').hidden = true;
   $('live').hidden = false;
-  $('live').className = state || '';
+  $('live-pill').className = `pill ${state || ''}`;
   $('live-text').textContent = text;
+  $('live-code').textContent = code || '';
 }
 
 function showCodeForm(error) {
@@ -60,8 +65,11 @@ function showCodeForm(error) {
 }
 
 function updateLiveText() {
-  const who = viewers === 1 ? 'зритель' : viewers >= 2 && viewers <= 4 ? 'зрителя' : 'зрителей';
-  showLive(`В эфире · ${viewers} ${who} · код ${code}`, 'on');
+  const n10 = viewers % 10;
+  const n100 = viewers % 100;
+  const who = n10 === 1 && n100 !== 11 ? 'зритель'
+    : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? 'зрителя' : 'зрителей';
+  showLive(`В эфире · ${viewers} ${who}`, 'on');
 }
 
 async function connect(newCode) {

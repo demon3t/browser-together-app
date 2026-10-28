@@ -90,7 +90,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 480,
     title: 'Browser Together',
-    backgroundColor: '#1e1f22',
+    icon: path.join(__dirname, 'build', 'icon.png'),    backgroundColor: '#1e1f22',
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });

@@ -18,8 +18,10 @@
     "files": [
       "main.js",
       "preload.js",
-      "ui/**/*"
+      "ui/**/*",
+      "build/icon.png"
     ],
+    "icon": "build/icon.png",
     "protocols": [
       {
         "name": "Browser Together",
