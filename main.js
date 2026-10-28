@@ -14,12 +14,9 @@ let fullscreen = false;
 let pendingJoin = null;
 
 // ---------- Ссылки browsertogether://host?code=XXXXXX ----------
-if (process.defaultApp) {
-  // Запуск через "npm start": регистрируем протокол на electron.exe с путём к проекту
-  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
-} else {
-  app.setAsDefaultProtocolClient(PROTOCOL);
-}
+// Регистрируем только установленную версию. При запуске через "npm start" регистрация
+// записала бы в систему electron.exe с аргументами разработчика и сломала бы ссылки.
+if (app.isPackaged) app.setAsDefaultProtocolClient(PROTOCOL);
 
 function joinFromArgv(argv) {
   const link = argv.find((a) => a.startsWith(`${PROTOCOL}://`));
