@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
@@ -18,6 +18,12 @@
       <symbol id="i-stop" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
     </defs>
   </svg>
 
@@ -25,32 +31,50 @@
     <svg class="mark" aria-label="Browser Together"><use href="#i-logo"/></svg>
 
     <div class="nav">
-      <button id="back" class="icon" title="Назад"><svg class="i"><use href="#i-left"/></svg></button>
-      <button id="forward" class="icon" title="Вперёд"><svg class="i"><use href="#i-right"/></svg></button>
-      <button id="reload" class="icon" title="Обновить"><svg class="i"><use id="reload-icon" href="#i-reload"/></svg></button>
+      <button id="back" class="icon" title="Back"><svg class="i"><use href="#i-left"/></svg></button>
+      <button id="forward" class="icon" title="Forward"><svg class="i"><use href="#i-right"/></svg></button>
+      <button id="reload" class="icon" title="Reload"><svg class="i"><use id="reload-icon" href="#i-reload"/></svg></button>
     </div>
 
     <form id="url-form">
       <svg class="i url-icon"><use id="url-icon" href="#i-globe"/></svg>
-      <input id="url" spellcheck="false" autocomplete="off" placeholder="Адрес или поисковый запрос">
+      <input id="url" spellcheck="false" autocomplete="off" placeholder="Search or enter address">
     </form>
 
     <!-- Не подключено: поле для кода из Discord -->
     <form id="code-form">
       <span id="code-error" hidden></span>
-      <input id="code" maxlength="12" spellcheck="false" autocomplete="off" placeholder="Код">
-      <button type="submit" class="primary">Подключить</button>
+      <input id="code" type="password" maxlength="12" spellcheck="false" autocomplete="off" placeholder="Room code">
+      <button type="submit" class="primary">Connect</button>
     </form>
 
     <!-- Подключено: статус трансляции -->
     <div id="live" hidden>
-      <span id="live-pill" class="status"><span class="dot"></span><span id="live-text"></span></span>
-      <span id="live-code" class="code-chip" title="Код комнаты"></span>
-      <button id="disconnect" title="Остановить трансляцию">Остановить</button>
+      <span id="viewers" class="viewers" title="Viewers"><svg class="i"><use href="#i-user"/></svg><span id="viewers-count">0</span></span>
+      <span class="code-chip">
+        <span id="live-code" class="code-value">••••••</span>
+        <button id="toggle-code" class="icon tiny" title="Show code"><svg class="i"><use id="toggle-code-icon" href="#i-eye"/></svg></button>
+        <button id="copy-code" class="icon tiny" title="Copy code"><svg class="i"><use id="copy-code-icon" href="#i-copy"/></svg></button>
+      </span>
+      <!-- Точка на кнопке показывает состояние трансляции -->
+      <button id="disconnect" class="stop" title="Stop streaming"><span class="dot"></span>Stop</button>
     </div>
 
     <div id="progress" hidden></div>
   </header>
+
+  <!-- Обязательное обновление: закрывает всё окно, пока не обновимся -->
+  <div id="update" hidden>
+    <div class="update-card">
+      <svg class="mark big"><use href="#i-logo"/></svg>
+      <h1>Update required</h1>
+      <p id="update-text">A new version of Browser Together is available. Update to continue.</p>
+      <div id="update-progress" class="bar" hidden><div id="update-bar"></div></div>
+      <button id="update-button" class="primary big"><svg class="i"><use href="#i-download"/></svg>Update</button>
+      <button id="update-manual" class="link" hidden>Download installer manually</button>
+    </div>
+  </div>
+
   <script src="ui.js"></script>
 </body>
 </html>

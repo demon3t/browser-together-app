@@ -1,8 +1,8 @@
 {
   "name": "browser-together-app",
   "productName": "Browser Together",
-  "version": "1.1.0",
-  "description": "Браузер, который транслирует вкладку в активность Discord «Browser Together»",
+  "version": "1.2.0",
+  "description": "Browser that streams its tab to the Browser Together Discord activity",
   "main": "main.js",
   "author": "demon3t",
   "license": "MIT",
@@ -22,6 +22,12 @@
       "build/icon.png"
     ],
     "icon": "build/icon.png",
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://92-51-44-211.sslip.io/app/"
+      }
+    ],
     "protocols": [
       {
         "name": "Browser Together",
@@ -42,5 +48,8 @@
   "devDependencies": {
     "electron": "^45.1.0",
     "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

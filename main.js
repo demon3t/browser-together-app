@@ -1,4 +1,5 @@
-const { app, BrowserWindow, WebContentsView, session, ipcMain } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, clipboard, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 
 // Сервер-ретранслятор. Адрес зашит в приложение (а не берётся из ссылки), чтобы чужая ссылка
@@ -11,9 +12,13 @@ const TOOLBAR_HEIGHT = 52;
 let win = null;
 let site = null;
 let fullscreen = false;
+let uiReady = false; // панель загрузилась и может принимать сообщения
 let pendingJoin = null;
+// Обновление обязательное: пока не проверили версию (или нужна новая), к комнате не подключаемся.
+// 'checking' — проверяем, 'required' — нужна новая версия, 'ok' — можно работать.
+let updateState = 'checking';
+let requiredVersion = null;
 
-// ---------- Ссылки browsertogether://host?code=XXXXXX ----------
 // Версия для разработки ("npm start") хранит данные отдельно от установленной. Иначе у них общий
 // замок единственного экземпляра, и запуск из папки проекта передал бы ссылку в окно установленного
 // приложения (и прервал бы идущую в нём трансляцию).
@@ -23,6 +28,7 @@ if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), '
 // записала бы в систему electron.exe с аргументами разработчика и сломала бы ссылки.
 if (app.isPackaged) app.setAsDefaultProtocolClient(PROTOCOL);
 
+// ---------- Ссылки browsertogether://host?code=XXXXXX ----------
 function joinFromArgv(argv) {
   const link = argv.find((a) => a.startsWith(`${PROTOCOL}://`));
   if (!link) return;
@@ -34,8 +40,14 @@ function joinFromArgv(argv) {
   }
   code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
   if (!code) return;
-  if (win) win.webContents.send('join', code);
-  else pendingJoin = code;
+  pendingJoin = code;
+  flushJoin();
+}
+
+function flushJoin() {
+  if (!pendingJoin || updateState !== 'ok' || !uiReady) return;
+  win.webContents.send('join', pendingJoin);
+  pendingJoin = null;
 }
 
 // Второй запуск (клик по ссылке, когда приложение уже открыто) передаём в первое окно
@@ -50,10 +62,71 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
   joinFromArgv(process.argv);
-  app.whenReady().then(createWindow);
+  app.whenReady().then(() => {
+    createWindow();
+    checkForUpdate();
+  });
   app.on('window-all-closed', () => app.quit());
 }
 
+// ---------- Обязательное обновление ----------
+// Файлы обновлений лежат на сервере (папка /app/, см. "publish" в package.json).
+// Скачиваем только после нажатия кнопки Update, затем ставим и перезапускаем приложение.
+function checkForUpdate() {
+  const feed = process.env.BT_UPDATE_URL; // для проверки обновлений в разработке
+  if (!app.isPackaged && !feed) {
+    setUpdateState('ok');
+    return;
+  }
+  if (feed) {
+    autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.setFeedURL({ provider: 'generic', url: feed });
+  }
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('update-available', (info) => {
+    requiredVersion = info.version;
+    setUpdateState('required');
+  });
+  autoUpdater.on('update-not-available', () => setUpdateState('ok'));
+  autoUpdater.on('download-progress', (progress) => win?.webContents.send('update-progress', progress.percent));
+  autoUpdater.on('update-downloaded', () => {
+    win?.webContents.send('update-installing');
+    // Тихая установка и перезапуск новой версии
+    setTimeout(() => autoUpdater.quitAndInstall(true, true), 800);
+  });
+  autoUpdater.on('error', () => {
+    // Не смогли проверить (нет сети, сервер недоступен) — не блокируем работу
+    if (updateState === 'checking') setUpdateState('ok');
+    else win?.webContents.send('update-error');
+  });
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
+function setUpdateState(state) {
+  updateState = state;
+  if (state === 'required') {
+    site?.setVisible(false);
+    sendUpdateRequired();
+  }
+  flushJoin();
+}
+
+function sendUpdateRequired() {
+  if (updateState === 'required' && uiReady) {
+    win.webContents.send('update-required', requiredVersion);
+  }
+}
+
+ipcMain.on('update-start', () => {
+  if (updateState === 'required') autoUpdater.downloadUpdate().catch(() => win?.webContents.send('update-error'));
+});
+
+// Запасной путь: открыть установщик в обычном браузере
+ipcMain.on('download-installer', () => shell.openExternal(`${SERVER_URL}/app/BrowserTogether-Setup.exe`));
+
+// ---------- Окно ----------
 // Сайты (например, вход в Google) не любят "Electron" в User-Agent — оставляем обычный Chrome
 function chromeUserAgent(ua) {
   return ua.split(' ').filter((part) => !/^(Electron|browser-together-app|Browser ?Together)\//i.test(part)).join(' ');
@@ -92,8 +165,10 @@ function createWindow() {
     minWidth: 760,
     minHeight: 480,
     title: 'Browser Together',
-    icon: path.join(__dirname, 'build', 'icon.png'),    backgroundColor: '#1e1f22',
+    icon: path.join(__dirname, 'build', 'icon.png'),
+    backgroundColor: '#0a0a0a',
     autoHideMenuBar: true,
+    show: !process.env.BT_BACKGROUND, // для автотестов: окно не появляется и не отбирает фокус
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.removeMenu();
@@ -107,6 +182,7 @@ function createWindow() {
   wc.loadURL(START_URL);
   layout();
   win.on('resize', layout);
+  if (updateState === 'required') site.setVisible(false);
 
   // Новые окна открываем в этой же вкладке: зрители видят только её
   wc.setWindowOpenHandler(({ url }) => {
@@ -135,15 +211,16 @@ function createWindow() {
   });
 
   win.webContents.on('did-finish-load', () => {
+    uiReady = true;
     sendPage();
-    if (pendingJoin) {
-      win.webContents.send('join', pendingJoin);
-      pendingJoin = null;
-    }
+    sendUpdateRequired();
+    flushJoin();
   });
 }
 
 ipcMain.handle('config', () => ({ server: SERVER_URL, version: app.getVersion() }));
+
+ipcMain.on('copy', (event, text) => clipboard.writeText(String(text)));
 
 ipcMain.on('navigate', (event, action, url) => {
   const wc = site?.webContents;
@@ -156,7 +233,8 @@ ipcMain.on('navigate', (event, action, url) => {
   } else if (action === 'forward') {
     wc.navigationHistory.goForward();
   } else if (action === 'reload') {
-    wc.reload();
+    if (wc.isLoading()) wc.stop();
+    else wc.reload();
   }
   wc.focus();
 });

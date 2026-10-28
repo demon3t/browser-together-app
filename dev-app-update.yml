@@ -1,0 +1,5 @@
+# Настройки обновлений для запуска из папки проекта (npm start + BT_UPDATE_URL).
+# Установленная версия использует app-update.yml, который electron-builder создаёт из "publish" в package.json.
+provider: generic
+url: https://92-51-44-211.sslip.io/app/
+updaterCacheDirName: browser-together-app-updater-dev

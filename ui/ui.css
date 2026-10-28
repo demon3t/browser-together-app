@@ -89,32 +89,53 @@ input:focus { border-color: var(--text-2); }
 
 #code-form { display: flex; align-items: center; gap: 6px; }
 #code {
-  width: 100px;
+  width: 110px;
   text-align: center;
-  text-transform: uppercase;
   font: 500 13px var(--mono);
   letter-spacing: .25em;
 }
-#code::placeholder { font-family: var(--font); letter-spacing: 0; text-transform: none; }
+#code::placeholder { font-family: var(--font); letter-spacing: 0; }
 #code-error { color: var(--danger); max-width: 260px; font-size: 12px; line-height: 1.3; text-align: right; }
 
 #live { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.status { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-weight: 500; }
-.status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-.status.on { color: var(--text); }
-.status.on .dot { background: var(--live); box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
-.status.error { color: var(--warn); }
-.status.error .dot { background: var(--warn); }
+/* Кнопка Stop с индикатором: серый — подключение, красный — в эфире, жёлтый — переподключение */
+button.stop { gap: 8px; }
+.stop .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.stop.on .dot { background: var(--live); animation: pulse 1.6s ease-in-out infinite; }
+.stop.error .dot { background: var(--warn); }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .45); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+
+.viewers { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.viewers .i { width: 14px; height: 14px; }
 
 .code-chip {
-  height: 24px; padding: 0 8px;
-  display: inline-flex; align-items: center;
+  height: 30px; padding: 0 2px 0 10px;
+  display: inline-flex; align-items: center; gap: 2px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-2);
-  font: 500 12px var(--mono);
-  letter-spacing: .2em;
+  border-radius: 7px;
 }
+.code-value { min-width: 64px; color: var(--text-2); font: 500 12px var(--mono); letter-spacing: .2em; }
+button.icon.tiny { width: 24px; height: 24px; border-radius: 5px; }
+button.icon.tiny .i { width: 14px; height: 14px; }
+
+/* ---------- Обязательное обновление ---------- */
+#update {
+  position: fixed; inset: 0; z-index: 10;
+  display: grid; place-items: center;
+  background: var(--bg);
+}
+.update-card { width: min(360px, calc(100% - 32px)); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.update-card h1 { margin: 8px 0 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.update-card p { margin: 0 0 8px; color: var(--text-2); line-height: 1.5; }
+.mark.big { width: 40px; height: 40px; margin: 0; stroke-width: 1.5; }
+button.big { height: 38px; padding: 0 18px; }
+button.link { height: auto; padding: 2px 4px; background: transparent; border: 0; color: var(--muted); font-weight: 400; text-decoration: underline; text-underline-offset: 3px; }
+button.link:hover { background: transparent; color: var(--text-2); }
+.bar { width: 100%; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+#update-bar { width: 0; height: 100%; background: var(--text); transition: width .2s; }
 
 /* Тонкая полоска загрузки страницы по нижнему краю панели */
 #progress {

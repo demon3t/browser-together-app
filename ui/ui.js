@@ -34,7 +34,7 @@ window.bt.onPage((page) => {
   $('back').disabled = !page.canGoBack;
   $('forward').disabled = !page.canGoForward;
   $('reload-icon').setAttribute('href', page.loading ? '#i-stop' : '#i-reload');
-  $('reload').title = page.loading ? 'Остановить' : 'Обновить';
+  $('reload').title = page.loading ? 'Stop' : 'Reload';
   $('progress').hidden = !page.loading;
   $('url-icon').setAttribute('href', page.url.startsWith('https:') ? '#i-lock' : '#i-globe');
   document.title = page.title ? `${page.title} — Browser Together` : 'Browser Together';
@@ -52,14 +52,48 @@ $('code-form').addEventListener('submit', (e) => {
 
 $('disconnect').addEventListener('click', () => disconnect());
 
-// state: 'on' — в эфире, 'error' — связь потеряна, '' — подключение
+// ---------- Код комнаты: скрыт, пока не нажали на глаз ----------
+let codeVisible = false;
+
+function renderCode() {
+  $('live-code').textContent = codeVisible ? code || '' : '••••••';
+  $('toggle-code-icon').setAttribute('href', codeVisible ? '#i-eye-off' : '#i-eye');
+  $('toggle-code').title = codeVisible ? 'Hide code' : 'Show code';
+}
+
+$('toggle-code').addEventListener('click', () => {
+  codeVisible = !codeVisible;
+  renderCode();
+});
+
+let copyTimer = null;
+$('copy-code').addEventListener('click', () => {
+  if (!code) return;
+  window.bt.copy(code);
+  $('copy-code-icon').setAttribute('href', '#i-check');
+  $('copy-code').title = 'Copied';
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => {
+    $('copy-code-icon').setAttribute('href', '#i-copy');
+    $('copy-code').title = 'Copy code';
+  }, 1500);
+});
+
+// state: 'on' — в эфире, 'error' — связь потеряна, '' — подключение.
+// Состояние видно по точке на кнопке Stop, текст — во всплывающей подсказке.
 function showLive(text, state) {
   $('code-form').hidden = true;
   $('live').hidden = false;
-  $('live-pill').className = `status ${state || ''}`;
-  $('live-text').textContent = text;
-  $('live-code').textContent = code || '';
+  $('disconnect').className = `stop ${state || ''}`;
+  $('disconnect').title = `${text} — click to stop streaming`;
+  $('viewers').hidden = state !== 'on';
+  renderCode();
 }
+
+// Сервер присылает код ошибки, текст показываем на английском
+const ERRORS = {
+  room_not_found: 'Room code not found or expired. Get a new one in the Discord activity.',
+};
 
 function showCodeForm(error) {
   $('live').hidden = true;
@@ -69,11 +103,8 @@ function showCodeForm(error) {
 }
 
 function updateLiveText() {
-  const n10 = viewers % 10;
-  const n100 = viewers % 100;
-  const who = n10 === 1 && n100 !== 11 ? 'зритель'
-    : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? 'зрителя' : 'зрителей';
-  showLive(`В эфире · ${viewers} ${who}`, 'on');
+  $('viewers-count').textContent = viewers;
+  showLive('Streaming', 'on');
 }
 
 async function connect(newCode) {
@@ -81,7 +112,7 @@ async function connect(newCode) {
   disconnect(true);
   code = newCode;
   $('code').value = code;
-  showLive('Подключение...', '');
+  showLive('Connecting…', '');
 
   const url = config.server.replace(/^http/, 'ws') + `/?role=app&code=${encodeURIComponent(code)}`;
   const socket = new WebSocket(url);
@@ -99,7 +130,7 @@ async function connect(newCode) {
     } else if (msg.t === 'error') {
       rejected = true;
       code = null;
-      showCodeForm(msg.error);
+      showCodeForm(ERRORS[msg.code] || 'Could not connect. Try again.');
     } else if (msg.t === 'viewers') {
       viewers = msg.count;
       if (ws === socket) updateLiveText();
@@ -114,7 +145,7 @@ async function connect(newCode) {
     stopEncoding();
     if (rejected || !code) return;
     // Связь оборвалась — переподключаемся с тем же кодом
-    showLive('Связь потеряна, переподключение...', 'error');
+    showLive('Reconnecting…', 'error');
     reconnectTimer = setTimeout(() => connect(code), 3000);
   });
 }
@@ -289,5 +320,41 @@ function stopEncoding() {
   encoder?.stop();
   encoder = null;
 }
+
+// ---------- Обязательное обновление ----------
+window.bt.onUpdateRequired((version) => {
+  disconnect();
+  $('update').hidden = false;
+  $('update-text').textContent = `Browser Together ${version} is available. Update to continue.`;
+});
+
+$('update-button').addEventListener('click', () => {
+  $('update-button').disabled = true;
+  $('update-button').lastChild.textContent = 'Downloading…';
+  $('update-progress').hidden = false;
+  window.bt.startUpdate();
+});
+
+window.bt.onUpdateProgress((percent) => {
+  $('update-bar').style.width = `${Math.round(percent)}%`;
+  $('update-button').lastChild.textContent = `Downloading… ${Math.round(percent)}%`;
+});
+
+window.bt.onUpdateInstalling(() => {
+  $('update-bar').style.width = '100%';
+  $('update-button').lastChild.textContent = 'Installing…';
+});
+
+window.bt.onUpdateError(() => {
+  $('update-progress').hidden = true;
+  $('update-bar').style.width = '0';
+  $('update-button').disabled = false;
+  $('update-button').lastChild.textContent = 'Retry';
+  $('update-text').textContent = 'Update failed. Check your internet connection and try again.';
+  $('update-manual').hidden = false;
+});
+
+// Запасной путь, если автообновление не сработало: скачать установщик в браузере
+$('update-manual').addEventListener('click', () => window.bt.downloadInstaller());
 
 showCodeForm();
