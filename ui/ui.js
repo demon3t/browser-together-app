@@ -2,9 +2,13 @@
 const $ = (id) => document.getElementById(id);
 
 const FPS = 30;
-const VIDEO_BITRATE = 2_500_000;
+const MAX_BITRATE = 2_500_000;
+const MIN_BITRATE = 600_000;
 const MAX_WIDTH = 1280;
 const MAX_HEIGHT = 720;
+// Сколько данных может ждать отправки. Больше — значит интернет хоста не успевает,
+// и копить очередь нельзя: каждый лишний мегабайт — это секунды задержки у зрителей.
+const SEND_BUFFER_LIMIT = 256 * 1024;
 
 let config = null;
 let code = null;
@@ -52,7 +56,7 @@ $('disconnect').addEventListener('click', () => disconnect());
 function showLive(text, state) {
   $('code-form').hidden = true;
   $('live').hidden = false;
-  $('live-pill').className = `pill ${state || ''}`;
+  $('live-pill').className = `status ${state || ''}`;
   $('live-text').textContent = text;
   $('live-code').textContent = code || '';
 }
@@ -150,14 +154,34 @@ function updateEncoding() {
   else stopEncoding();
 }
 
+// Пакет: [тип | 0x10][время кадра: float64, мкс][время отправки: float64, мс][данные]
+// Тип: 1 = ключевой кадр, 2 = обычный кадр, 3 = звук. Флаг 0x10 говорит, что есть время отправки —
+// по нему зрители оценивают задержку.
+const HAS_SENT_AT = 0x10;
+let skipUntilKey = false; // канал переполнился — ждём ключевой кадр, чтобы зрители сразу догнали эфир
+let congested = false; // за последнюю секунду были пропуски из-за медленного интернета
+
 function sendPacket(type, chunk) {
-  // Канал не успевает — пропускаем пакет, сервер дождётся следующего ключевого кадра
-  if (ws?.readyState !== 1 || ws.bufferedAmount > 4 * 1024 * 1024) return;
-  const buf = new ArrayBuffer(9 + chunk.byteLength);
+  if (ws?.readyState !== 1) return;
+  const isVideo = type !== 3;
+  if (ws.bufferedAmount > SEND_BUFFER_LIMIT) {
+    congested = true;
+    if (isVideo) {
+      skipUntilKey = true;
+      encoder?.requestKey();
+    }
+    return;
+  }
+  if (isVideo && skipUntilKey) {
+    if (type !== 1) return;
+    skipUntilKey = false;
+  }
+  const buf = new ArrayBuffer(17 + chunk.byteLength);
   const view = new DataView(buf);
-  view.setUint8(0, type);
+  view.setUint8(0, type | HAS_SENT_AT);
   view.setFloat64(1, chunk.timestamp);
-  chunk.copyTo(new Uint8Array(buf, 9));
+  view.setFloat64(9, Date.now());
+  chunk.copyTo(new Uint8Array(buf, 17));
   ws.send(buf);
 }
 
@@ -170,11 +194,33 @@ function startEncoding() {
   let lastKeyRequest = 0;
   let frameNo = 0;
   let size = null;
+  let bitrate = MAX_BITRATE;
+  let reconfigure = false;
+  let calmSeconds = 0;
+  skipUntilKey = false;
+  congested = false;
 
   const videoEncoder = new VideoEncoder({
     output: (chunk) => sendPacket(chunk.type === 'key' ? 1 : 2, chunk),
     error: (e) => console.error('VideoEncoder', e),
   });
+
+  // Подстраиваем битрейт под интернет хоста: при пропусках снижаем, при свободном канале
+  // постепенно возвращаем качество. Меньше данных в очереди — меньше задержка у зрителей.
+  const bitrateTimer = setInterval(() => {
+    if (congested) {
+      calmSeconds = 0;
+      if (bitrate > MIN_BITRATE) {
+        bitrate = Math.max(MIN_BITRATE, Math.round(bitrate * 0.7));
+        reconfigure = true;
+      }
+    } else if (++calmSeconds >= 8 && bitrate < MAX_BITRATE) {
+      calmSeconds = 0;
+      bitrate = Math.min(MAX_BITRATE, Math.round(bitrate * 1.2));
+      reconfigure = true;
+    }
+    congested = false;
+  }, 1000);
 
   (async () => {
     const reader = new MediaStreamTrackProcessor({ track: videoTrack }).readable.getReader();
@@ -182,10 +228,12 @@ function startEncoding() {
       const { value: frame, done } = await reader.read();
       if (done) break;
       // Размер окна мог поменяться — перенастраиваем кодировщик
-      if (!size || frame.displayWidth !== size.width || frame.displayHeight !== size.height) {
+      const resized = !size || frame.displayWidth !== size.width || frame.displayHeight !== size.height;
+      if (resized || reconfigure) {
         size = { width: frame.displayWidth, height: frame.displayHeight };
-        videoEncoder.configure({ codec: 'vp8', ...size, bitrate: VIDEO_BITRATE, framerate: FPS, latencyMode: 'realtime' });
-        send({ t: 'media-config', config: { video: { codec: 'vp8', ...size } } });
+        videoEncoder.configure({ codec: 'vp8', ...size, bitrate, framerate: FPS, latencyMode: 'realtime' });
+        if (resized) send({ t: 'media-config', config: { video: { codec: 'vp8', ...size } } });
+        reconfigure = false;
         forceKey = true;
       }
       if (videoEncoder.encodeQueueSize > 2) { frame.close(); continue; } // не успеваем — пропускаем кадр
@@ -228,6 +276,7 @@ function startEncoding() {
     },
     stop() {
       stopped = true;
+      clearInterval(bitrateTimer);
       videoTrack.stop();
       audioTrack?.stop();
       if (videoEncoder.state !== 'closed') videoEncoder.close();

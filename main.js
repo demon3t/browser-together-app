@@ -14,6 +14,11 @@ let fullscreen = false;
 let pendingJoin = null;
 
 // ---------- Ссылки browsertogether://host?code=XXXXXX ----------
+// Версия для разработки ("npm start") хранит данные отдельно от установленной. Иначе у них общий
+// замок единственного экземпляра, и запуск из папки проекта передал бы ссылку в окно установленного
+// приложения (и прервал бы идущую в нём трансляцию).
+if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'browser-together-app-dev'));
+
 // Регистрируем только установленную версию. При запуске через "npm start" регистрация
 // записала бы в систему electron.exe с аргументами разработчика и сломала бы ссылки.
 if (app.isPackaged) app.setAsDefaultProtocolClient(PROTOCOL);

@@ -1,26 +1,29 @@
+/* Минималистичная тёмная тема (как в активности): нейтральные серые, тонкие рамки, без градиентов */
 :root {
-  --bg: #111214;
-  --panel: #1e1f22;
-  --panel-2: #2b2d31;
-  --panel-3: #35373c;
-  --border: rgba(255, 255, 255, .06);
-  --text: #f2f3f5;
-  --text-2: #b5bac1;
-  --muted: #80848e;
-  --accent: #5865f2;
-  --accent-2: #8b5cf6;
-  --live: #f23f43;
-  --warn: #f0b232;
-  --danger: #f23f43;
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #171717;
+  --hover: #1f1f1f;
+  --border: #262626;
+  --border-strong: #333333;
+  --text: #ededed;
+  --text-2: #a1a1a1;
+  --muted: #737373;
+  --live: #ef4444;
+  --warn: #eab308;
+  --danger: #f87171;
+  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
-  background: var(--panel);
+  background: var(--bg);
   color: var(--text);
-  font: 13.5px/1.4 "Segoe UI", system-ui, sans-serif;
+  font: 13px/1.4 var(--font);
+  letter-spacing: -0.006em;
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
@@ -28,111 +31,99 @@ body {
 .sprite { position: absolute; }
 
 .i {
-  width: 17px; height: 17px; flex: none;
-  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  width: 16px; height: 16px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
 }
+.mark { width: 20px; height: 20px; flex: none; margin: 0 6px 0 4px; fill: none; stroke: currentColor; stroke-width: 1.75; color: var(--text); }
 
 /* Высота панели должна совпадать с TOOLBAR_HEIGHT в main.js */
 #toolbar {
   position: relative;
   height: 52px;
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
   padding: 0 10px;
-  background: var(--panel);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 
-.logo {
-  width: 32px; height: 32px; flex: none;
-  display: grid; place-items: center;
-  font-size: 17px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-}
-
-button, input { font: inherit; color: inherit; }
+button, input { font: inherit; color: inherit; letter-spacing: inherit; }
 button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--panel-2);
-  border: 0;
-  border-radius: 8px;
-  padding: 7px 12px;
-  cursor: pointer;
+  height: 30px;
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-weight: 500;
   white-space: nowrap;
-  transition: background .15s, color .15s, filter .15s;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
 }
-button:hover { background: var(--panel-3); }
-button:disabled { opacity: .35; cursor: default; background: transparent; }
-button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 600; }
-button.primary:hover { filter: brightness(1.1); }
-button.icon { padding: 7px; background: transparent; color: var(--text-2); }
-button.icon:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
-button.stop { background: transparent; color: var(--text-2); padding: 6px 10px; }
-button.stop .i { width: 13px; height: 13px; fill: currentColor; }
-button.stop:hover { background: rgba(242, 63, 67, .15); color: #ff6b6e; }
+button:hover { background: var(--hover); border-color: var(--border-strong); }
+button:disabled { opacity: .3; cursor: default; }
+button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+button.primary:hover { background: #fff; }
+button.icon { width: 30px; padding: 0; background: transparent; border-color: transparent; color: var(--text-2); }
+button.icon:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+button.icon:disabled:hover { background: transparent; }
 
 .nav { display: flex; gap: 2px; }
 
 input {
-  background: var(--bg);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 7px 14px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
   outline: none;
   user-select: text;
-  transition: border-color .15s, box-shadow .15s, background .15s;
+  transition: border-color .12s;
 }
-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88, 101, 242, .25); }
+input::placeholder { color: var(--muted); }
+input:hover { border-color: var(--border-strong); }
+input:focus { border-color: var(--text-2); }
 
 #url-form { flex: 1; min-width: 0; position: relative; }
-#url { width: 100%; padding-left: 36px; }
-.url-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); pointer-events: none; }
+#url { width: 100%; padding-left: 32px; }
+.url-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--muted); pointer-events: none; }
 
 #code-form { display: flex; align-items: center; gap: 6px; }
 #code {
-  width: 110px;
+  width: 100px;
   text-align: center;
   text-transform: uppercase;
-  font: 600 14px "Cascadia Mono", Consolas, monospace;
-  letter-spacing: 3px;
-  border-radius: 8px;
+  font: 500 13px var(--mono);
+  letter-spacing: .25em;
 }
-#code::placeholder { letter-spacing: 2px; font-weight: 400; }
-#code-error { color: #ff6b6e; max-width: 260px; font-size: 12px; line-height: 1.25; text-align: right; }
+#code::placeholder { font-family: var(--font); letter-spacing: 0; text-transform: none; }
+#code-error { color: var(--danger); max-width: 260px; font-size: 12px; line-height: 1.3; text-align: right; }
 
-#live { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--panel-2);
-  color: var(--text-2);
-  font-weight: 600; font-size: 12.5px;
-}
-.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.pill.on { background: rgba(242, 63, 67, .15); color: #ff8587; }
-.pill.on .dot { background: var(--live); animation: pulse 1.6s ease-in-out infinite; }
-.pill.error { background: rgba(240, 178, 50, .14); color: var(--warn); }
-.pill.error .dot { background: var(--warn); }
-@keyframes pulse { 50% { opacity: .35; } }
+#live { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.status { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-weight: 500; }
+.status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.status.on { color: var(--text); }
+.status.on .dot { background: var(--live); box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
+.status.error { color: var(--warn); }
+.status.error .dot { background: var(--warn); }
 
 .code-chip {
-  padding: 4px 8px;
+  height: 24px; padding: 0 8px;
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--panel-2);
   color: var(--text-2);
-  font: 600 12.5px "Cascadia Mono", Consolas, monospace;
-  letter-spacing: 2px;
+  font: 500 12px var(--mono);
+  letter-spacing: .2em;
 }
 
-/* Полоска загрузки страницы по нижнему краю панели */
+/* Тонкая полоска загрузки страницы по нижнему краю панели */
 #progress {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
   overflow: hidden;
 }
 #progress::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 30%;
-  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
-  animation: loading 1.1s ease-in-out infinite;
+  content: ""; position: absolute; top: 0; bottom: 0; width: 25%;
+  background: var(--text-2);
+  animation: loading 1s ease-in-out infinite;
 }
-@keyframes loading { from { left: -30%; } to { left: 100%; } }
+@keyframes loading { from { left: -25%; } to { left: 100%; } }

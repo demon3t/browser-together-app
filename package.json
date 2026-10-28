@@ -1,7 +1,7 @@
 {
   "name": "browser-together-app",
   "productName": "Browser Together",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Браузер, который транслирует вкладку в активность Discord «Browser Together»",
   "main": "main.js",
   "author": "demon3t",
